@@ -115,7 +115,7 @@ namespace WebSocketSharp
     private Uri                            _uri;
     private const string                   _version = "13";
     private TimeSpan                       _waitTime;
-
+    private NameValueCollection            _headers;
     #endregion
 
     #region Internal Fields
@@ -624,6 +624,20 @@ namespace WebSocketSharp
       }
     }
 
+    /// <summary>
+    /// Gets or sets the headers used for protocol handshake
+    /// </summary>
+    public NameValueCollection Headers {
+      get { 
+            return _headers;
+        }
+
+        internal set { 
+          lock(_forState) {
+              _headers = value;
+            }
+        }
+    }
     #endregion
 
     #region Public Events
@@ -1166,7 +1180,7 @@ namespace WebSocketSharp
     }
 
     // As client
-    private HttpRequest createHandshakeRequest ()
+    private HttpRequest createHandshakeRequest (NameValueCollection wsHeaders)
     {
       var ret = HttpRequest.CreateWebSocketRequest (_uri);
 
@@ -1185,6 +1199,10 @@ namespace WebSocketSharp
         headers["Sec-WebSocket-Extensions"] = createExtensions ();
 
       headers["Sec-WebSocket-Version"] = _version;
+      foreach(var wsHeaderKey in wsHeaders.AllKeys)
+      {
+        headers[wsHeaderKey] = wsHeaders[wsHeaderKey];
+      }
 
       AuthenticationResponse authRes = null;
       if (_authChallenge != null && _credentials != null) {
@@ -1781,7 +1799,7 @@ namespace WebSocketSharp
     // As client
     private HttpResponse sendHandshakeRequest ()
     {
-      var req = createHandshakeRequest ();
+      var req = createHandshakeRequest (_headers);
       var res = sendHttpRequest (req, 90000);
       if (res.IsUnauthorized) {
         var chal = res.Headers["WWW-Authenticate"];
@@ -3332,6 +3350,28 @@ namespace WebSocketSharp
             username, password, String.Format ("{0}:{1}", _uri.DnsSafeHost, _uri.Port)
           );
       }
+    }
+
+    public void SetHeaders(NameValueCollection collection)
+    {
+      string msg;
+      if (!checkIfAvailable (true, false, true, false, false, true, out msg)) {
+        _logger.Error (msg);
+        error ("An error has occurred in setting the headers.", null);
+
+        return;
+      }
+
+      lock (_forState) {
+        if (!checkIfAvailable (true, false, false, true, out msg)) {
+          _logger.Error (msg);
+          error ("An error has occurred in setting the headers.", null);
+
+          return;
+        }
+      }
+
+      Headers = collection;
     }
 
     #endregion

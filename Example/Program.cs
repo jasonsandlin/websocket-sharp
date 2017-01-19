@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using WebSocketSharp;
 using WebSocketSharp.Net;
+using System.Collections.Specialized;
 
 namespace Example
 {
@@ -30,7 +31,11 @@ namespace Example
       //using (var ws = new WebSocket ("ws://localhost:4649/Chat?name=nobita"))
       //using (var ws = new WebSocket ("wss://localhost:5963/Chat?name=nobita"))
       {
+        NameValueCollection headerCollection = new NameValueCollection();
+        headerCollection.Add("Authorization", "authKey");
         // Set the WebSocket events.
+        ws.SetProxy("http://localhost:8888", null, null);
+        ws.SetHeaders(headerCollection);
 
         ws.OnOpen += (sender, e) => ws.Send ("Hi, there!");
 
